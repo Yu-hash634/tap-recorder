@@ -9,16 +9,62 @@ body {
   color: white;
   font-family: sans-serif;
   text-align: center;
-  padding-top: 50px;
+  padding: 20px;
+  transition: background 0.2s;
 }
 
-/* UI前面 */
-button, input, #info {
+/* 録音中の背景 */
+body.recording {
+  background: #0b1f14;
+}
+
+/* ボタン共通 */
+button {
+  width: 80%;
+  max-width: 300px;
+  margin: 10px;
+  padding: 20px;
+  font-size: 20px;
+  border-radius: 10px;
+  border: none;
+  color: white;
+  transition: background 0.15s, transform 0.05s;
+}
+
+/* タップ感（押した瞬間） */
+button:active {
+  background: white !important;
+  color: black;
+  transform: scale(0.98);
+}
+
+/* 色（暗め） */
+.start { background: #1e6f4f; }
+.stop { background: #7a2f2f; }
+.reset { background: #555; }
+.save { background: #2c5d87; }
+
+/* 録音中のSTART */
+body.recording .start {
+  background: #0b1f14;
+}
+
+/* 入力 */
+input {
+  width: 80%;
+  max-width: 300px;
+  margin: 10px;
+  padding: 15px;
+  font-size: 18px;
+  border-radius: 8px;
+}
+
+/* 情報 */
+#info {
+  margin-top: 20px;
+  font-size: 18px;
   position: relative;
   z-index: 1;
-  margin: 10px;
-  padding: 12px;
-  font-size: 16px;
 }
 
 /* タップ検知エリア */
@@ -40,10 +86,10 @@ button, input, #info {
 
 <br>
 
-<button onclick="start()">START</button>
-<button onclick="stop()">STOP</button>
-<button onclick="reset()">RESET</button>
-<button onclick="exportCSV()">CSV保存</button>
+<button class="start" onclick="start()">START</button>
+<button class="stop" onclick="stop()">STOP</button>
+<button class="reset" onclick="reset()">RESET</button>
+<button class="save" onclick="exportCSV()">CSV保存</button>
 
 <p id="info">time: 0.00 s | taps: 0</p>
 
@@ -61,11 +107,14 @@ function start() {
   taps = [];
   startTime = performance.now();
   running = true;
+
+  document.body.classList.add("recording");
 }
 
 // STOP
 function stop() {
   running = false;
+  document.body.classList.remove("recording");
 }
 
 // RESET
@@ -73,6 +122,7 @@ function reset() {
   taps = [];
   running = false;
   startTime = null;
+  document.body.classList.remove("recording");
   updateInfo();
 }
 
@@ -115,28 +165,36 @@ function updateInfo() {
     `time: ${(time/1000).toFixed(2)} s | taps: ${taps.length}`;
 }
 
-// CSV出力（最終版）
+// CSV出力
 function exportCSV() {
   if (taps.length === 0) return;
 
-  const name = document.getElementById("nameInput").value || "tap_log";
+  const input = document.getElementById("nameInput");
+  const name = input.value || "tap_log";
 
-  let csv = "index,time(ms),interval(ms),centered,alt\n";
+  let csv = "time(ms),y,red,green,blue\n";
 
   const intervals = taps.map((t, i) =>
-    i === 0 ? t : t - taps[i-1]
+    i === 0 ? 0 : t - taps[i-1]
   );
-
-  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
 
   for (let i = 0; i < taps.length; i++) {
     const t = taps[i];
-    const interval = intervals[i];
+    const intervalSec = intervals[i] / 1000;
 
-    const centered = interval - avg;
-    const alt = centered * (i % 2 === 0 ? 1 : -1);
+    let red = "";
+    let green = "";
+    let blue = "";
 
-    csv += `${i+1},${t.toFixed(2)},${interval.toFixed(2)},${centered.toFixed(2)},${alt.toFixed(2)}\n`;
+    if (intervalSec >= 0.95 && intervalSec <= 1.05) {
+      red = 0;
+    } else if (intervalSec >= 0.45 && intervalSec <= 0.55) {
+      green = 0;
+    } else {
+      blue = 0;
+    }
+
+    csv += `${t.toFixed(2)},0,${red},${green},${blue}\n`;
   }
 
   const blob = new Blob([csv], { type: "text/csv" });
@@ -148,6 +206,8 @@ function exportCSV() {
   a.click();
 
   URL.revokeObjectURL(url);
+
+  input.value = "";
 }
 </script>
 
