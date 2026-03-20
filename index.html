@@ -15,12 +15,10 @@ body {
   transition: background 0.2s;
 }
 
-/* 録音中 */
 body.recording {
   background: #0b1f14;
 }
 
-/* 上半分（UI） */
 #controls {
   height: 50%;
   display: flex;
@@ -29,54 +27,49 @@ body.recording {
   align-items: center;
 }
 
-/* 下半分（タップ） */
 #tapArea {
   height: 50%;
   width: 100%;
 }
 
-/* 入力 */
-input {
+input, textarea {
   width: 80%;
   max-width: 400px;
-  padding: 15px;
-  font-size: 18px;
-  margin-bottom: 10px;
+  padding: 12px;
+  margin: 5px;
+  font-size: 16px;
   border-radius: 8px;
 }
 
-/* ボタン */
+textarea {
+  height: 60px;
+}
+
 button {
   width: 80%;
   max-width: 400px;
-  margin: 8px;
-  padding: 20px;
-  font-size: 22px;
-  border-radius: 12px;
+  margin: 6px;
+  padding: 18px;
+  font-size: 20px;
+  border-radius: 10px;
   border: none;
   color: white;
-  transition: background 0.15s, transform 0.05s;
 }
 
-/* タップ感 */
 button:active {
   background: white !important;
   color: black;
-  transform: scale(0.98);
 }
 
-/* 色（暗め） */
 .start { background: #1e6f4f; }
 .stop { background: #7a2f2f; }
 .reset { background: #555; }
-.save { background: #2c5d87; }
+.copy { background: #2c5d87; }
 
-/* 録音中START */
 body.recording .start {
   background: #0b1f14;
 }
 
-/* 情報 */
 #info {
   font-size: 16px;
 }
@@ -92,7 +85,9 @@ body.recording .start {
   <button class="start" onclick="start()">START</button>
   <button class="stop" onclick="stop()">STOP</button>
   <button class="reset" onclick="reset()">RESET</button>
-  <button class="save" onclick="exportCSV()">CSV保存</button>
+  <button class="copy" onclick="exportDesmos()">コピー（Desmos用）</button>
+
+  <textarea id="output" readonly placeholder="ここに出る"></textarea>
 
   <p id="info">time: 0.00 s | taps: 0</p>
 </div>
@@ -127,13 +122,14 @@ function reset() {
   startTime = null;
   document.body.classList.remove("recording");
   updateInfo();
+  document.getElementById("output").value = "";
 }
 
-// タップ（下半分だけ）
+// タップ
 tapArea.addEventListener("touchstart", (e) => {
   if (!running) return;
-
   e.preventDefault();
+
   const now = performance.now();
 
   for (let i = 0; i < e.changedTouches.length; i++) {
@@ -164,49 +160,17 @@ function updateInfo() {
   info.innerText = `time: ${(time/1000).toFixed(2)} s | taps: ${taps.length}`;
 }
 
-// CSV
-function exportCSV() {
+// Desmos出力
+function exportDesmos() {
   if (taps.length === 0) return;
 
-  const input = document.getElementById("nameInput");
-  const name = input.value || "tap_log";
+  let points = taps.map(t => `(${(t/1000).toFixed(2)},0)`).join(",");
 
-  let csv = "time(ms),y,red,green,blue\n";
+  const output = document.getElementById("output");
+  output.value = points;
 
-  const intervals = taps.map((t, i) =>
-    i === 0 ? 0 : t - taps[i-1]
-  );
-
-  for (let i = 0; i < taps.length; i++) {
-    const t = taps[i];
-    const intervalSec = intervals[i] / 1000;
-
-    let red = "";
-    let green = "";
-    let blue = "";
-
-    if (intervalSec >= 0.95 && intervalSec <= 1.05) {
-      red = 0;
-    } else if (intervalSec >= 0.45 && intervalSec <= 0.55) {
-      green = 0;
-    } else {
-      blue = 0;
-    }
-
-    csv += `${t.toFixed(2)},0,${red},${green},${blue}\n`;
-  }
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${name}.csv`;
-  a.click();
-
-  URL.revokeObjectURL(url);
-
-  input.value = "";
+  // クリップボードコピー
+  navigator.clipboard.writeText(points);
 }
 </script>
 
