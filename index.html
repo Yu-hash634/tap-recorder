@@ -5,33 +5,60 @@
 <title>Tap Recorder</title>
 <style>
 body {
+  margin: 0;
   background: #111;
   color: white;
   font-family: sans-serif;
-  text-align: center;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   transition: background 0.2s;
 }
 
-/* 録音中の背景 */
+/* 録音中 */
 body.recording {
   background: #0b1f14;
 }
 
-/* ボタン共通 */
+/* 上半分（UI） */
+#controls {
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 下半分（タップ） */
+#tapArea {
+  height: 50%;
+  width: 100%;
+}
+
+/* 入力 */
+input {
+  width: 80%;
+  max-width: 400px;
+  padding: 15px;
+  font-size: 18px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+/* ボタン */
 button {
   width: 80%;
-  max-width: 300px;
-  margin: 10px;
+  max-width: 400px;
+  margin: 8px;
   padding: 20px;
-  font-size: 20px;
-  border-radius: 10px;
+  font-size: 22px;
+  border-radius: 12px;
   border: none;
   color: white;
   transition: background 0.15s, transform 0.05s;
 }
 
-/* タップ感（押した瞬間） */
+/* タップ感 */
 button:active {
   background: white !important;
   color: black;
@@ -44,54 +71,31 @@ button:active {
 .reset { background: #555; }
 .save { background: #2c5d87; }
 
-/* 録音中のSTART */
+/* 録音中START */
 body.recording .start {
   background: #0b1f14;
 }
 
-/* 入力 */
-input {
-  width: 80%;
-  max-width: 300px;
-  margin: 10px;
-  padding: 15px;
-  font-size: 18px;
-  border-radius: 8px;
-}
-
 /* 情報 */
 #info {
-  margin-top: 20px;
-  font-size: 18px;
-  position: relative;
-  z-index: 1;
-}
-
-/* タップ検知エリア */
-#tapArea {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
+  font-size: 16px;
 }
 </style>
 </head>
 <body>
 
-<h2>Tap Recorder</h2>
+<div id="controls">
+  <h2>Tap Recorder</h2>
 
-<input id="nameInput" placeholder="name">
+  <input id="nameInput" placeholder="name">
 
-<br>
+  <button class="start" onclick="start()">START</button>
+  <button class="stop" onclick="stop()">STOP</button>
+  <button class="reset" onclick="reset()">RESET</button>
+  <button class="save" onclick="exportCSV()">CSV保存</button>
 
-<button class="start" onclick="start()">START</button>
-<button class="stop" onclick="stop()">STOP</button>
-<button class="reset" onclick="reset()">RESET</button>
-<button class="save" onclick="exportCSV()">CSV保存</button>
-
-<p id="info">time: 0.00 s | taps: 0</p>
+  <p id="info">time: 0.00 s | taps: 0</p>
+</div>
 
 <div id="tapArea"></div>
 
@@ -107,7 +111,6 @@ function start() {
   taps = [];
   startTime = performance.now();
   running = true;
-
   document.body.classList.add("recording");
 }
 
@@ -126,12 +129,11 @@ function reset() {
   updateInfo();
 }
 
-// マルチタッチ
+// タップ（下半分だけ）
 tapArea.addEventListener("touchstart", (e) => {
   if (!running) return;
 
   e.preventDefault();
-
   const now = performance.now();
 
   for (let i = 0; i < e.changedTouches.length; i++) {
@@ -141,31 +143,28 @@ tapArea.addEventListener("touchstart", (e) => {
   updateInfo();
 }, { passive: false });
 
-// マウス
 tapArea.addEventListener("mousedown", () => {
   if (!running) return;
 
   const now = performance.now();
   taps.push(now - startTime);
-
   updateInfo();
 });
 
-// 表示更新
+// 表示
 function updateInfo() {
   if (!startTime) {
-    document.getElementById("info").innerText = "time: 0.00 s | taps: 0";
+    info.innerText = "time: 0.00 s | taps: 0";
     return;
   }
 
   const now = performance.now();
   const time = running ? now - startTime : taps[taps.length - 1] || 0;
 
-  document.getElementById("info").innerText =
-    `time: ${(time/1000).toFixed(2)} s | taps: ${taps.length}`;
+  info.innerText = `time: ${(time/1000).toFixed(2)} s | taps: ${taps.length}`;
 }
 
-// CSV出力
+// CSV
 function exportCSV() {
   if (taps.length === 0) return;
 
