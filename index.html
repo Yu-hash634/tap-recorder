@@ -115,13 +115,13 @@ function updateInfo() {
     `time: ${(time/1000).toFixed(2)} s | taps: ${taps.length}`;
 }
 
-// CSV出力（累積波）
+// CSV出力（最終版）
 function exportCSV() {
   if (taps.length === 0) return;
 
   const name = document.getElementById("nameInput").value || "tap_log";
 
-  let csv = "index,time(ms),interval(ms),centered,cumulative\n";
+  let csv = "index,time(ms),interval(ms),centered,alt\n";
 
   const intervals = taps.map((t, i) =>
     i === 0 ? t : t - taps[i-1]
@@ -129,19 +129,14 @@ function exportCSV() {
 
   const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
 
-  let cumulative = 0;
-
   for (let i = 0; i < taps.length; i++) {
     const t = taps[i];
     const interval = intervals[i];
 
     const centered = interval - avg;
+    const alt = centered * (i % 2 === 0 ? 1 : -1);
 
-    const signed = centered * (i % 2 === 0 ? 1 : -1);
-
-    cumulative += signed;
-
-    csv += `${i+1},${t.toFixed(2)},${interval.toFixed(2)},${centered.toFixed(2)},${cumulative.toFixed(2)}\n`;
+    csv += `${i+1},${t.toFixed(2)},${interval.toFixed(2)},${centered.toFixed(2)},${alt.toFixed(2)}\n`;
   }
 
   const blob = new Blob([csv], { type: "text/csv" });
